@@ -30,7 +30,7 @@ public:
 
 	void open(const String& _filename);
 	using file_t::is_open;
-	//void show();//TODO where to show
+	void show();//TODO where to show
 	void insert(const T& data);
 	//void remove(const size_t index);
 	//void replace(const T& data);
@@ -140,14 +140,21 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 	}
 	origin.close();
 }
-/*
+
 template <class T> void FileList<T>::show()
 {
-	if (!FNFP) { return; }
+	if (!FNFP)
+	{
+		std::cout << "->\nEmpty list\n<-" << std::endl;
+		return;
+	}
 
 	FP_t next_FP = FNFP;
 	FP_t iter_FP;//TODO maybe create position iterators class?
 	T read_data;
+
+	size_t index = 1;
+	std::cout << "->" << std::endl;
 	do
 	{
 		iter_FP = next_FP;
@@ -155,11 +162,12 @@ template <class T> void FileList<T>::show()
 		this->operator>>(next_FP) >> read_data;
 
 		//there's need of some kind of buffer, that gets data
-		buffer << read_data;
+		std::cout << '[' << index++ << "]: " << read_data << std::endl;
 	} while (next_FP != FNFP);
+	std::cout << "<-" << std::endl;
 
 	seekg(current_FP);
-}*/
+}
 
 template <class T> void FileList<T>::insert(const T& data)
 {
