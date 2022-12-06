@@ -1,0 +1,1 @@
+g++ -o compile_test source/*.cpp -I include/ -Wall -Wextra -pedantic
