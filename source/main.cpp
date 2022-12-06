@@ -4,6 +4,8 @@ int main()
 {
 	FileList<int> fl;
 	fl.open(String("test.bin"));
-	fl << std::ios::pos_type(56);
+	//fl.insert(10);
+	//fl.insert(11);
+	fl.insert(12);
 	return 0;
 }

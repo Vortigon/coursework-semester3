@@ -2,83 +2,80 @@
 
 #include "pch.h"
 #include "String.h"
-#include "operators.h"
+#include "IO_operators.hpp"
 
 template <class T>
 class FileList : protected std::fstream
 {
 public:
+	typedef std::fstream file_t;
+	typedef std::streamoff FP_t;
 private:
-	static constexpr std::ios::openmode COPY_MODE =
-		std::ios::in | std::ios::binary;
+	static constexpr openmode COPY_MODE = in | binary;
+	static constexpr openmode DEFAULT_MODE = in | out | binary;
+	static constexpr openmode CREATE_MODE = out | binary;
 
-	static constexpr std::ios::openmode DEFAULT_MODE =
-		std::ios::in | std::ios::out | std::ios::binary;
-
-	static constexpr std::ios::openmode CREATE_MODE =
-		std::ios::out | std::ios::binary;
-
-	static constexpr int64_t FP_OFFSET = sizeof(pos_type);
+	static constexpr FP_t FP_OFFSET = sizeof(FP_t);
 
 	struct Run
 	{
-		Run(size_t _size, pos_type start, pos_type end)
+		Run(size_t _size, FP_t start, FP_t end)
 			: size(_size), start_FP(start), end_FP(end) {}
 		size_t size;
-		pos_type start_FP, end_FP;
+		FP_t start_FP, end_FP;
 	};
 public:
 	FileList();
-	
-	void open(const String& _filename);
+	~FileList();
 
+	void open(const String& _filename);
+	using file_t::is_open;
 	//void show();//TODO where to show
 	void insert(const T& data);
 	//void remove(const size_t index);
 	//void replace(const T& data);
 
 	//void sort();//TODO sort modes
-	//TODO Operators are public for debug purposes
-	std::fstream& operator>>(T& data)
-	{
-		return ::operator>>(reinterpret_cast<std::fstream&>(*this), data);
-	}
-
-	std::fstream& operator<<(const T& data)
-	{
-		return ::operator<<(reinterpret_cast<std::fstream&>(*this), data);
-	}
-	
-	std::fstream& operator>>(pos_type& pos)
-	{
-		return ::operator>>(reinterpret_cast<std::fstream&>(*this), pos);
-	}
-
-	std::fstream& operator<<(const pos_type& pos)
-	{
-		return ::operator<<(reinterpret_cast<std::fstream&>(*this), pos);
-	}
 private:
+	template <class D>
+	file_t& operator>>(D& data);
+
+	template <class D>
+	file_t& operator<<(const D& data);
 	//-----Timsort parts
 	/*size_t getMinrun() const;
 	size_t getRun();
-	void runInsertSort(pos_type& start_FP, pos_type& end_FP,
+	void runInsertSort(FP_t& start_FP, FP_t& end_FP,
 			size_t run_size);
 	void runMergeSort(Run& run1, Run& run2);*/
 	//-----
 	void copyToSwap(char*& origin_name);
 private:
 	String filename;
-	pos_type current_FP, FNFP;
+	FP_t current_FP, FNFP;
 	size_t size;
+/*ifdef DEBUG_FILE_LIST
+	union Action
+	{
+		FP_t 
+	}no, not today
+	std::vector<*/
 };
 
 template <class T> FileList<T>::FileList()
 	: filename{}, current_FP{0}, FNFP{0}, size{0} {}
 
+template <class T> FileList<T>::~FileList()
+{
+	//copying from swap to origin
+}
+
 template <class T> void FileList<T>::open(const String& _filename)
 {
-	if (is_open()) { close(); }
+	if (is_open())
+	{
+		close();//copying old file from swap to origin
+	}
 
 	char* c_str_origin, *c_str_swap;
 	String swap_filename(_filename + String(".swp"));
@@ -87,13 +84,16 @@ template <class T> void FileList<T>::open(const String& _filename)
 	swap_filename.c_str(c_str_swap);
 
 	//TODO multiple files
-	std::fstream::open(c_str_swap, CREATE_MODE); //??
+	file_t::open(c_str_swap, CREATE_MODE); //??
 
 	filename = _filename;
 	copyToSwap(c_str_origin);
 
-	std::fstream::close();
-	std::fstream::open(c_str_swap, DEFAULT_MODE);
+	file_t::close();
+	file_t::open(c_str_swap, DEFAULT_MODE);
+
+	delete[] c_str_origin;
+	delete[] c_str_swap;
 }
 
 template <class T> void FileList<T>::copyToSwap(char*& origin_name)
@@ -101,7 +101,7 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 	current_FP = 0;
 	FNFP = 0;
 	size = 0;
-	std::fstream origin(origin_name, COPY_MODE);
+	file_t origin(origin_name, COPY_MODE);
 	if (!origin.is_open())
 	{
 		origin.clear();
@@ -118,7 +118,7 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 
 	if (FNFP > 0)
 	{
-		pos_type read_FP;
+		FP_t read_FP;
 		T data;
 
 		while(origin.peek() != EOF)//TODO does EOF work??????
@@ -138,11 +138,6 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 		current_FP = FNFP;
 		//TODO checking list maybe(if all bytes are useful)
 	}
-	else
-	{
-		this->operator<<(FNFP);
-		seekg(current_FP);
-	}
 	origin.close();
 }
 /*
@@ -150,8 +145,8 @@ template <class T> void FileList<T>::show()
 {
 	if (!FNFP) { return; }
 
-	pos_type next_FP = FNFP;
-	pos_type iter_FP;//TODO maybe create position iterators class?
+	FP_t next_FP = FNFP;
+	FP_t iter_FP;//TODO maybe create position iterators class?
 	T read_data;
 	do
 	{
@@ -172,29 +167,30 @@ template <class T> void FileList<T>::insert(const T& data)
 
 	if (!FNFP)
 	{
-		seekp(0);
+		seekg(0);
 
 		for (size_t i = 0; i < 3; i++)
-		{ this->operator<<(FP_OFFSET); }
+		{ this->operator<<(FP_t{FP_OFFSET}); }
 		this->operator<<(data);
 
 		FNFP = FP_OFFSET;
 		current_FP = FNFP;
 		size++;
 
-		seekg(FNFP);
+		seekg(FNFP);//?
 		return;
 	}
 
-	pos_type left_node, right_node;
+	FP_t left_node, right_node;
 	if (!current_FP)
 	{
 		seekg(FNFP);
 		this->operator>>(current_FP);
 	}
-	seekg(current_FP);
+	seekg(current_FP + FP_OFFSET);
 	
-	this->operator>>(left_node) >> right_node;
+	this->operator>>(right_node);
+	left_node = current_FP;
 
 	seekg(0, std::ios_base::end);
 	current_FP = tellg();
@@ -219,7 +215,7 @@ template <class T> void FileList<T>::remove(size_t index)
 }
 
 template <class T> size_t FileList<T>::gallopingMode
-	(pos_type iter_FP, pos_type end_FP, const T& data)
+	(FP_t iter_FP, FP_t end_FP, const T& data)
 {
 	size_t i = 1; j = 1;
 	seekg(iter_FP + FP_OFFSET);
@@ -254,8 +250,8 @@ template <class T> size_t FileList<T>::gallopingMode
 
 template <class T> void runMergeSort(Run& run1, Run& run2)
 {
-	pos_type iter1 = run1.start_FP, iter2 = run2.start_FP;
-	std::vector<pos_type> result_list;
+	FP_t iter1 = run1.start_FP, iter2 = run2.start_FP;
+	std::vector<FP_t> result_list;//?
 	size_t result_size = 0;
 	T data1, data2;
 
@@ -299,7 +295,7 @@ template <class T> void FileList<T>::sort()
 	size_t minrun = getMinrun();
 	
 	std::vector<Run> runs;
-	pos_type iter_FP = FNFP;
+	FP_t iter_FP = FNFP;
 	do
 	{
 		runs.push_back(getRun(iter_FNFP, minrun));
@@ -340,14 +336,14 @@ template <class T> size_t getMinrun() const
 	return n+r;
 }
 
-void runInsertSort(pos_type& start_FP, pos_type& end_FP,
+void runInsertSort(FP_t& start_FP, FP_t& end_FP,
 		size_t run_size)
 {
 	T inserting_data, comparing_data;
-	seekg(end_FP + 2*sizeof((pos_type));
+	seekg(end_FP + 2*sizeof((FP_t));
 	this->operator>>(inserting_data);
 
-	pos_type left_bound_FP = start_FP, right_bound_FP = end_FP,
+	FP_t left_bound_FP = start_FP, right_bound_FP = end_FP,
 		compare_FP;
 	while (run_size > 0)
 	{
@@ -358,7 +354,7 @@ void runInsertSort(pos_type& start_FP, pos_type& end_FP,
 			this->operator>>(compare_FP);
 		}
 
-		seekg(compare_FP + 2*FP_OFFSET);
+		seekg(compare_FP + 2 * FP_OFFSET);
 		this->operator>>(comparing_data);
 
 		if (comparing_data <= inserting_data)
@@ -375,7 +371,7 @@ void runInsertSort(pos_type& start_FP, pos_type& end_FP,
 
 	if (right_bound == compare_FP)//comparing data > inserting_data
 	{
-		pos_type comp_next, in_prev, in_next;
+		FP_t comp_next, in_prev, in_next;
 
 		seekg(compare_FP + FP_OFFSET);
 		this->operator>>(comp_next);
@@ -405,7 +401,7 @@ void runInsertSort(pos_type& start_FP, pos_type& end_FP,
 	}
 	else
 	{
-		pos_type comp_prev, in_prev, in_next;
+		FP_t comp_prev, in_prev, in_next;
 
 		seekg(compare_FP);
 		this->operator>>(comp_prev);
@@ -438,10 +434,10 @@ void runInsertSort(pos_type& start_FP, pos_type& end_FP,
 	}
 }
 
-template <class T> Run getRun(pos_type start_FP, size_t minrun)
+template <class T> Run getRun(FP_t start_FP, size_t minrun)
 {
 	T data1, data2;
-	pos_type next_FP, end_FP;
+	FP_t next_FP, end_FP;
 	bool descend;
 	size_t run_size = 1;
 
@@ -473,13 +469,13 @@ template <class T> Run getRun(pos_type start_FP, size_t minrun)
 
 	if (descend)//Reversing sorted part of run
 	{
-		pos_type iter_FP1 = start_FP, iter_FP2;
+		FP_t iter_FP1 = start_FP, iter_FP2;
 		seekg(end_FP);
 		this->operator>>(iter_FP2);
 
 		while (iter_FP1 < iter_FP2)//do i need i1 == i2???
 		{
-			pos_type prev1, next1, prev2, next2;
+			FP_t prev1, next1, prev2, next2;
 
 			seekg(iter_FP1);
 			this->operator>>(prev1) >> next1;
@@ -542,4 +538,17 @@ template <class T> Run getRun(pos_type start_FP, size_t minrun)
 
 	return Run(run_size, start_FP, end_FP);
 }
-*/	
+*/
+template <class T>
+template <class D>
+std::fstream& FileList<T>::operator>>(D& data)
+{
+	return ::operator>>(reinterpret_cast<file_t&>(*this), data);
+}
+
+template <class T>
+template <class D>
+std::fstream& FileList<T>::operator<<(const D& data)
+{
+	return ::operator<<(reinterpret_cast<file_t&>(*this), data);
+}
