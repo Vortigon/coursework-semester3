@@ -32,6 +32,7 @@ public:
 	using file_t::is_open;
 	void show();//TODO where to show
 	void insert(const T& data);
+	void save();
 	//void remove(const size_t index);
 	//void replace(const T& data);
 
@@ -55,12 +56,6 @@ private:
 	String filename;
 	FP_t current_FP, FNFP;
 	size_t size;
-/*ifdef DEBUG_FILE_LIST
-	union Action
-	{
-		FP_t 
-	}no, not today
-	std::vector<*/
 };
 
 template <class T> FileList<T>::FileList()
@@ -69,6 +64,46 @@ template <class T> FileList<T>::FileList()
 template <class T> FileList<T>::~FileList()
 {
 	//copying from swap to origin
+}
+
+template <class T> void FileList<T>::save()
+{
+	if (!is_open() || !FNFP) return;
+
+	char* origin_name;
+	filename.c_str(origin_name);
+
+	file_t origin(origin_name, DEFAULT_MODE);
+
+	T data;
+	FP_t last_FP = FP_OFFSET, current_FP = FNFP, origin_FNFP = FP_OFFSET;
+	origin.seekg(0);
+	origin << origin_FNFP;
+	seekg(FNFP);
+
+	while (current_FP)
+	{
+		seekg(current_FP + FP_OFFSET);
+		this->operator>>(current_FP) >> data;
+
+		FP_t end_FP = origin.tellg();
+		origin.seekg(last_FP + FP_OFFSET);
+		origin << end_FP;
+
+		origin.seekg(end_FP);
+		origin << last_FP << origin_FNFP << data;
+		last_FP = end_FP;
+
+		if (current_FP == FNFP) 
+		{
+			current_FP = 0;
+			origin.seekg(FP_OFFSET);
+			origin << last_FP;
+		}
+	}
+
+	origin.close();
+	delete[] origin_name;
 }
 
 template <class T> void FileList<T>::open(const String& _filename)
@@ -212,6 +247,7 @@ template <class T> void FileList<T>::insert(const T& data)
 	seekg(right_node);
 	this->operator<<(current_FP);
 }
+
 /*
 template <class T> void FileList<T>::replace(const T& data)
 {
@@ -331,6 +367,12 @@ template <class T> void FileList<T>::sort()
 			else { break; }
 		}
 	} while (iter_FP != FNFP);
+
+	while (runs.size() > 1)
+	{
+		runMergeSort(runs[0], runs[1]);
+	}
+	FNFP = runs[0].start_FP;
 }
 
 template <class T> size_t FileList<T>::getMinrun() const
@@ -351,9 +393,9 @@ template <class T> void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
 	seekg(end_FP + 2*FP_OFFSET);
 	this->operator>>(inserting_data);
 
-	FP_t left_bound_FP = start_FP, right_bound_FP = end_FP,
-		compare_FP;
-	while (run_size > 0)
+	FP_t left_bound_FP = start_FP, compare_FP = start_FP;
+
+	while (run_size > 1)
 	{
 		compare_FP = left_bound_FP;
 		for (size_t i = 0; i < run_size/2; i++)
@@ -372,25 +414,27 @@ template <class T> void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
 		}
 		else
 		{
-			right_bound_FP = compare_FP;
 			run_size /= 2;
 		}
 	}
 
-	if (right_bound_FP == compare_FP)//comparing data > inserting_data
+	seekg(compare_FP + 2 * FP_OFFSET);
+	this->operator>>(comparing_data);
+
+	if (comparing_data <= inserting_data)
 	{
 		FP_t comp_next, in_prev, in_next;
 
 		seekg(compare_FP + FP_OFFSET);
 		this->operator>>(comp_next);
+
+		seekg(end_FP);
+		this->operator>>(in_prev) >> in_next;
 		if (comp_next == end_FP)
 		{
 			end_FP = in_next;
 			return;
 		}
-
-		seekg(end_FP);
-		this->operator>>(in_prev) >> in_next;
 		
 		seekg(in_prev + FP_OFFSET);
 		this->operator<<(in_next);
@@ -407,7 +451,7 @@ template <class T> void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
 		
 		end_FP = in_next;
 	}
-	else
+	else 
 	{
 		FP_t comp_prev, in_prev, in_next;
 
@@ -483,8 +527,10 @@ template <class T> typename FileList<T>::Run FileList<T>::getRun(FP_t start_FP, 
 
 		seekg(end_FP);
 		this->operator>>(iter_FP2);
-		seekg(end_FP + 2 * FP_OFFSET);
+		seekg(iter_FP2 + 2 * FP_OFFSET);
 		this->operator>>(data2);
+		if (start_FP == FNFP) FNFP = iter_FP2;
+		start_FP = iter_FP2;
 
 		while (data1 > data2)//do i need i1 == i2???
 		{
