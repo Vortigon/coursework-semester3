@@ -3,6 +3,7 @@
 #include "pch.h"
 #include "String.h"
 #include "IO_operators.hpp"
+#include "serializedSize.hpp"
 
 template <class T>
 class FileList : protected std::fstream
@@ -33,8 +34,8 @@ public:
 	void show();//TODO where to show
 	void insert(const T& data, int offset_index = -1);
 	void save();
-	//void remove(const size_t index);
-	//void replace(const T& data);
+	void remove(int offset_index = -1);
+	void replace(const T& data, int offset_index);
 
 	void sort();//TODO sort modes
 private:
@@ -110,7 +111,7 @@ template <class T> void FileList<T>::open(const String& _filename)
 {
 	if (is_open())
 	{
-		close();//copying old file from swap to origin
+		close();//copying old file from swap to origin (made in save(n))
 	}
 
 	char* c_str_origin, *c_str_swap;
@@ -200,8 +201,6 @@ template <class T> void FileList<T>::show()
 		std::cout << '[' << index++ << "]: " << read_data << std::endl;
 	} while (next_FP != FNFP);
 	std::cout << "<-" << std::endl;
-
-	//seekg(current_FP);
 }
 
 template <class T> void FileList<T>::insert(const T& data, int offset_index)
@@ -261,16 +260,56 @@ template <class T> void FileList<T>::insert(const T& data, int offset_index)
 	if (offset_index == 0) { FNFP = end_FP; }
 }
 
-/*
-template <class T> void FileList<T>::replace(const T& data)
+template <class T> void FileList<T>::replace(const T& data, int offset_index)
 {
+	if (size == 0 || !is_open()) return;
+
 	
 }
 
-template <class T> void FileList<T>::remove(size_t index)
-{
 
-}*/
+template <class T> void FileList<T>::remove(int offset_index)
+{
+	if (size == 0 || !is_open()) return;
+
+	if (size == 1)
+	{
+		FNFP = 0;
+		seekg(FNFP);
+		this->operator<<(FNFP);
+		size--;
+		return;
+	}
+
+	FP_t left_node, right_node;
+	seekg(FNFP);
+	this->operator>>(left_node) >> right_node;
+	
+	if (offset_index >= 0)
+	{
+		for (int i = 0; i != offset_index; i++)
+		{
+			seekg(right_node);
+			this->operator>>(left_node) >> right_node;
+		}
+	}
+	else
+	{
+		for (int i = 0; i != offset_index; i--)
+		{
+			seekg(left_node);
+			this->operator>>(left_node) >> right_node;
+		}
+	}
+
+	seekg(left_node + FP_OFFSET);
+	this->operator<<(right_node);
+	seekg(right_node);
+	this->operator<<(left_node);
+
+	if (offset_index % size == 0) { FNFP = right_node; }
+	size--;
+}
 
 template <class T> size_t FileList<T>::gallopingMode
 	(FP_t iter_FP, FP_t end_FP, const T& data)
