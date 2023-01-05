@@ -31,7 +31,7 @@ public:
 	void open(const String& _filename);
 	using file_t::is_open;
 	void show();//TODO where to show
-	void insert(const T& data);
+	void insert(const T& data, int offset_index = -1);
 	void save();
 	//void remove(const size_t index);
 	//void replace(const T& data);
@@ -54,12 +54,12 @@ private:
 	void copyToSwap(char*& origin_name);
 private:
 	String filename;
-	FP_t current_FP, FNFP;
+	FP_t /*current_FP,*/ FNFP;
 	size_t size;
 };
 
 template <class T> FileList<T>::FileList()
-	: filename{}, current_FP{0}, FNFP{0}, size{0} {}
+	: filename{}, FNFP{0}, size{0} {}
 
 template <class T> FileList<T>::~FileList()
 {
@@ -134,7 +134,7 @@ template <class T> void FileList<T>::open(const String& _filename)
 
 template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 {
-	current_FP = 0;
+	//current_FP = 0;
 	FNFP = 0;
 	size = 0;
 	file_t origin(origin_name, COPY_MODE);
@@ -145,7 +145,6 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 		origin.close();
 
 		this->operator<<(FNFP);
-		seekg(current_FP);
 		return;
 	}
 
@@ -171,7 +170,7 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 			size++;
 		}
 		seekg(FNFP);
-		current_FP = FNFP;
+		//current_FP = FNFP;
 		//TODO checking list maybe(if all bytes are useful)
 	}
 	origin.close();
@@ -202,10 +201,10 @@ template <class T> void FileList<T>::show()
 	} while (next_FP != FNFP);
 	std::cout << "<-" << std::endl;
 
-	seekg(current_FP);
+	//seekg(current_FP);
 }
 
-template <class T> void FileList<T>::insert(const T& data)
+template <class T> void FileList<T>::insert(const T& data, int offset_index)
 {
 	if (!is_open()) { return; }
 
@@ -218,34 +217,48 @@ template <class T> void FileList<T>::insert(const T& data)
 		this->operator<<(data);
 
 		FNFP = FP_OFFSET;
-		current_FP = FNFP;
 		size++;
 
-		seekg(FNFP);//?
 		return;
 	}
 
 	FP_t left_node, right_node;
-	if (!current_FP)
-	{
-		seekg(FNFP);
-		this->operator>>(current_FP);
-	}
-	seekg(current_FP + FP_OFFSET);
-	
-	this->operator>>(right_node);
-	left_node = current_FP;
 
-	seekg(0, std::ios_base::end);
-	current_FP = tellg();
+	seekg(FNFP);
+	this->operator>>(left_node);
+	right_node = FNFP;
+
+	if (offset_index >= 0)
+	{
+		for (int i = 0; i != offset_index; i++)
+		{
+			left_node = right_node;
+			seekg(right_node + FP_OFFSET);
+			this->operator>>(right_node);
+		}
+	}
+	else
+	{
+		for (int i = -1; i != offset_index; i--)
+		{
+			right_node = left_node;
+			seekg(left_node);
+			this->operator>>(left_node);
+		}
+	}
+
+	seekg(0, std::ios::end);
+	FP_t end_FP = tellg();
 	this->operator<<(left_node) << right_node << data;
 	size++;
-	
+
 	seekg(left_node + FP_OFFSET);
-	this->operator<<(current_FP);
+	this->operator<<(end_FP);
 	
 	seekg(right_node);
-	this->operator<<(current_FP);
+	this->operator<<(end_FP);
+
+	if (offset_index == 0) { FNFP = end_FP; }
 }
 
 /*

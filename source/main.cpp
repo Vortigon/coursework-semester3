@@ -7,9 +7,9 @@ int main()
 
 	fl.insert(12);
 	fl.insert(11);
-	fl.insert(10);
-	fl.insert(15);
-	fl.insert(14);
+	fl.insert(10, 0);
+	fl.insert(15, 1);
+	fl.insert(14, 1);
 	fl.insert(13);
 	
 	fl.show();
