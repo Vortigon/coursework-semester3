@@ -13,7 +13,13 @@ public:
 	~String();
 
 	char& operator[](size_t index) const;
+
 	bool operator==(const String& str) const;
+	bool operator!=(const String& str) const;
+	bool operator>(const String& str) const;
+	bool operator<(const String& str) const;
+	bool operator>=(const String& str) const;
+	bool operator<=(const String& str) const;
 
 	String& operator=(const String& str);
 

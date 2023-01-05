@@ -52,6 +52,43 @@ bool String::operator==(const String& str) const
 	return true;
 }
 
+bool String::operator!=(const String& str) const
+{
+	return !(this->operator==(str));
+}
+
+bool String::operator>(const String& str) const
+{
+	for (size_t i = 0; i < size && i < str.size; i++)
+	{
+		if (string[i] > str.string[i]) { return true; }
+		if (string[i] < str.string[i]) { return false; }
+	}
+	
+	return size > str.size;
+}
+
+bool String::operator<(const String& str) const
+{
+	for (size_t i = 0; i < size && i < str.size; i++)
+	{
+		if (string[i] < str.string[i]) { return true; }
+		if (string[i] > str.string[i]) { return false; }
+	}
+	
+	return size < str.size;
+}
+
+bool String::operator<=(const String& str) const
+{
+	return !(this->operator>(str));
+}
+
+bool String::operator>=(const String& str) const
+{
+	return !(this->operator<(str));
+}
+
 String& String::operator=(const String& str)
 {
 	if (this == &str) { return *this; }

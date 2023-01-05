@@ -291,7 +291,7 @@ template <class T> void FileList<T>::replace(const T& data, int offset_index)
 	this->operator>>(replacable_data);
 
 	if (size == 1 || end_FP == tellg()
-	|| serializedSize(replacable_data) == serializedSize(data))
+	|| serializedSize(replacable_data) >= serializedSize(data))
 	{
 		seekg(replacable_FP + 2 * FP_OFFSET);
 		this->operator<<(data);
@@ -310,6 +310,8 @@ template <class T> void FileList<T>::replace(const T& data, int offset_index)
 
 		seekg(end_FP);
 		this->operator<<(left_FP) << right_FP << data;
+
+		if (replacable_FP == FNFP) { FNFP = end_FP; }
 	}
 }
 
