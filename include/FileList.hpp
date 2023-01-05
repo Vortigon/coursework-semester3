@@ -246,7 +246,7 @@ template <class T> void FileList<T>::insert(const T& data, int offset_index)
 		}
 	}
 
-	seekg(0, std::ios::end);
+	seekg(0, end);
 	FP_t end_FP = tellg();
 	this->operator<<(left_node) << right_node << data;
 	size++;
@@ -264,7 +264,53 @@ template <class T> void FileList<T>::replace(const T& data, int offset_index)
 {
 	if (size == 0 || !is_open()) return;
 
-	
+	FP_t replacable_FP = FNFP;
+
+	if (offset_index >= 0)
+	{
+		for (int i = 0; i != offset_index; i++)
+		{
+			seekg(replacable_FP + FP_OFFSET);
+			this->operator>>(replacable_FP);
+		}
+	}
+	else
+	{
+		for (int i = 0; i != offset_index; i--)
+		{
+			seekg(replacable_FP);
+			this->operator>>(replacable_FP);
+		}
+	}
+
+	seekg(0, end);
+	FP_t end_FP = tellg();
+
+	T replacable_data;
+	seekg(replacable_FP + 2 * FP_OFFSET);
+	this->operator>>(replacable_data);
+
+	if (size == 1 || end_FP == tellg()
+	|| serializedSize(replacable_data) == serializedSize(data))
+	{
+		seekg(replacable_FP + 2 * FP_OFFSET);
+		this->operator<<(data);
+	}
+	else
+	{
+		FP_t left_FP, right_FP;
+		seekg(replacable_FP);
+		this->operator>>(left_FP) >> right_FP;
+
+		seekg(left_FP + FP_OFFSET);
+		this->operator<<(end_FP);
+
+		seekg(right_FP);
+		this->operator<<(end_FP);
+
+		seekg(end_FP);
+		this->operator<<(left_FP) << right_FP << data;
+	}
 }
 
 
