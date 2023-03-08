@@ -38,6 +38,8 @@ public:
 	void replace(const T& data, int offset_index);
 
 	void sort();//TODO sort modes
+	void mergeTest(FP_t, FP_t, FP_t);
+	void debugFilePrint();
 private:
 	template <class D>
 	file_t& operator>>(D& data);
@@ -157,7 +159,7 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 		FP_t read_FP;
 		T data;
 
-		while(origin.peek() != EOF)//TODO does EOF work??????
+		while(origin.peek() != EOF)
 		{
 			origin >> read_FP;
 			this->operator<<(read_FP);
@@ -171,7 +173,6 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 			size++;
 		}
 		seekg(FNFP);
-		//current_FP = FNFP;
 		//TODO checking list maybe(if all bytes are useful)
 	}
 	origin.close();
@@ -186,7 +187,7 @@ template <class T> void FileList<T>::show()
 	}
 
 	FP_t next_FP = FNFP;
-	FP_t iter_FP;//TODO maybe create position iterators class?
+	FP_t iter_FP;
 	T read_data;
 
 	size_t index = 1;
@@ -359,6 +360,7 @@ template <class T> void FileList<T>::remove(int offset_index)
 	size--;
 }
 
+/*
 template <class T> size_t FileList<T>::gallopingMode
 	(FP_t iter_FP, FP_t end_FP, const T& data)
 {
@@ -392,43 +394,165 @@ template <class T> size_t FileList<T>::gallopingMode
 
 	return i;
 }
+*/
 
-template <class T> void FileList<T>::runMergeSort(Run& run1, Run& run2)
+template <class T> void FileList<T>::debugFilePrint()
 {
-	FP_t iter1 = run1.start_FP, iter2 = run2.start_FP;
-	std::vector<FP_t> result_list;//?
-	T data1, data2;
+	seekg(0);
+	FP_t fp;
+	T data;
+	this->operator>>(fp);
+	std::cout << "\nFNFP = " << fp << "(" << std::hex << fp << ")" << std::dec << std::endl;
 
-	while (true)///while what
+	while(peek() != EOF)
 	{
-		seekg(iter1 + 2 * FP_OFFSET);
-		this->operator>>(data1);
+		fp = tellg();
+		std::cout << "Node at " << fp << "(" << std::hex << fp << ")" << std::dec << std::endl;
+		this->operator>>(fp);
+		std::cout << "prev = " << fp << "(" << std::hex << fp << ")" << std::dec << std::endl;
+		this->operator>>(fp);
+		std::cout << "next = " << fp << "(" << std::hex << fp << ")" << std::dec << std::endl;
+		this->operator>>(data);
+		std::cout << "data = " << data << std::endl;
+	}
+	std::cout << std::endl;
+}
 
-		seekg(iter2 + 2 * FP_OFFSET);
-		this->operator>>(data2);
+template <class T> void FileList<T>::mergeTest(FP_t left, FP_t middle, FP_t right)
+{
+	Run run1 = Run(4, left, middle), run2 = Run(4, middle, right); 
+	runMergeSort(run1, run2);	
+}
 
-		if (data2 > data1)
+template <class T> void FileList<T>::runMergeSort(Run& left_run, Run& right_run)
+{
+	FP_t left_FP = left_run.start_FP,
+		 right_FP = right_run.start_FP,
+		 last_FP = 0, leftbound_FP = 0;
+
+	seekg(left_FP);
+	this->operator>>(last_FP);
+	leftbound_FP = last_FP;
+
+	T ldata, rdata;
+
+	std::cout << "LRun: " << left_run.size << ", " << left_run.start_FP << ", " << left_run.end_FP << std::endl;
+	std::cout << "RRun: " << right_run.size << ", " << right_run.start_FP << ", " << right_run.end_FP << std::endl;
+
+	int counter = -1, iteration = 1;
+	while (left_FP != left_run.end_FP && right_FP != right_run.end_FP)
+	{
+		debugFilePrint();
+		seekg(left_FP + 2 * FP_OFFSET);
+		this->operator>>(ldata);
+
+		seekg(right_FP + 2 * FP_OFFSET);
+		this->operator>>(rdata);
+		//
+		std::cout << std::endl <<
+			"Ldata: " << ldata <<
+			"\nRdata: " << rdata <<
+			"\nlfp: " << left_FP <<
+			"\nrfp: " << right_FP <<
+			"\nlast_FP: " << last_FP <<
+			"\ncounter: " << counter << 
+			"\niteration: " << iteration++ << std::endl;
+		//
+		if (ldata < rdata)
 		{
-			size_t i = gallopingMode(iter1, run1.end_FP, data2);
-			while(i)
+			if (counter < 0) { counter--; }
+			else
 			{
-				result_list.push_back(iter1);
-				seekg(iter1 + FP_OFFSET);
-				this->operator>>(iter1);
-				i--;
+				counter = -1;
+
+				seekg(last_FP + FP_OFFSET);
+				this->operator<<(left_FP);
+
+				seekg(left_FP);
+				this->operator<<(last_FP);
 			}
+			last_FP = left_FP;
+			
+			seekg(left_FP + FP_OFFSET);
+			this->operator>>(left_FP);
+		}
+		else if (rdata < ldata)
+		{
+			if (counter > 0) { counter++; }
+			else
+			{
+				counter = 1;
+
+				seekg(last_FP + FP_OFFSET);
+				this->operator<<(right_FP);
+				if (last_FP == leftbound_FP && right_run.end_FP == left_run.start_FP)
+				{
+					right_run.end_FP = right_FP;
+				}
+
+				seekg(right_FP);
+				this->operator<<(last_FP);
+			}
+			last_FP = right_FP;
+
+			seekg(right_FP + FP_OFFSET);
+			this->operator>>(right_FP);
 		}
 		else
 		{
-			size_t i = gallopingMode(iter2, run2.end_FP, data1);
-			while(i)
+			if (counter > 0)
 			{
-				result_list.push_back(iter2);
-				seekg(iter2 + FP_OFFSET);
-				this->operator>>(iter2);
-				i--;
+				counter++;
+				last_FP = right_FP;
+				
+				seekg(right_FP + FP_OFFSET);
+				this->operator>>(right_FP);
+			}
+			else
+			{
+				counter--;
+				last_FP = left_FP;
+
+				seekg(left_FP + FP_OFFSET);
+				this->operator>>(left_FP);
 			}
 		}
+	}
+
+	if (right_FP == right_run.end_FP)
+	{
+		//(end)
+		seekg(last_FP + FP_OFFSET);
+		this->operator<<(left_FP);
+
+		seekg(left_FP);
+		this->operator<<(last_FP);
+
+		//(end+)
+		FP_t lnext_FP;
+		this->operator>>(lnext_FP);
+		
+		while (lnext_FP != left_run.end_FP)
+		{
+			left_FP = lnext_FP;
+			seekg(left_FP + FP_OFFSET);
+			this->operator>>(lnext_FP);
+		}
+
+		seekg(left_FP + FP_OFFSET);
+		this->operator<<(right_run.end_FP);
+
+		seekg(right_run.end_FP);
+		this->operator<<(left_FP);
+	}
+	else
+	{
+		//(end)
+		seekg(last_FP + FP_OFFSET);
+		this->operator<<(right_FP);
+
+		seekg(right_FP);
+		this->operator<<(last_FP);
 	}
 }
 
@@ -445,29 +569,29 @@ template <class T> void FileList<T>::sort()
 		runs.push_back(getRun(iter_FP, minrun));
 		iter_FP = runs.back().end_FP;
 
-		while (runs.size() >= 3)
-		{
-			size_t i = runs.size() - 1;
-			Run& X = runs[i-2];
-			Run& Y = runs[i-1];
-			Run& Z = runs[i];
-
-			if ((X.size <= Y.size + Z.size)
-			|| (Y.size <= Z.size))
-			{
-				if (Z.size < X.size)
-				{
-					runMergeSort(Z, Y);
-				}
-				else
-				{
-					runMergeSort(X, Y);
-				}
-			}
-			else { break; }
-		}
 	} while (iter_FP != FNFP);
 
+	/*while (runs.size() >= 3)
+	{
+		size_t i = runs.size() - 1;
+		Run& X = runs[i-2];
+		Run& Y = runs[i-1];
+		Run& Z = runs[i];
+
+		if ((X.size <= Y.size + Z.size)
+		|| (Y.size <= Z.size))
+		{
+			if (Z.size < X.size)
+			{
+				runMergeSort(Z, Y);
+			}
+			else
+			{
+				runMergeSort(X, Y);
+			}
+		}
+		else { break; }
+	}*/
 	while (runs.size() > 1)
 	{
 		runMergeSort(runs[0], runs[1]);
