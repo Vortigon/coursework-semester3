@@ -17,12 +17,14 @@ int main()
 	fl.insert(54);
 	fl.insert(79);
 	fl.insert(88);
-*/
+	
+	fl.insert(10);
+	*/
 	fl.show();
-	fl.mergeTest(8, 88, 8);
+	fl.mergeTest(8, 88, 148);
 	
 	fl.show();
-	
+
 	fl.debugFilePrint();
 	fl.save();
 	

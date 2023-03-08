@@ -52,7 +52,7 @@ private:
 	size_t gallopingMode(FP_t iter_FP, FP_t end_FP, const T& data);
 	void runInsertSort(FP_t& start_FP, FP_t& end_FP,
 			size_t run_size);
-	void runMergeSort(Run& run1, Run& run2);
+	Run runMergeSort(Run& run1, Run& run2);
 	//-----
 	void copyToSwap(char*& origin_name);
 private:
@@ -421,25 +421,27 @@ template <class T> void FileList<T>::debugFilePrint()
 template <class T> void FileList<T>::mergeTest(FP_t left, FP_t middle, FP_t right)
 {
 	Run run1 = Run(4, left, middle), run2 = Run(4, middle, right); 
-	runMergeSort(run1, run2);	
+	Run result = runMergeSort(run1, run2);
+	std::cout << result.size << " " << result.start_FP << " " << result.end_FP << std::endl;
 }
 
-template <class T> void FileList<T>::runMergeSort(Run& left_run, Run& right_run)
+template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left_run, Run& right_run)
 {
 	FP_t left_FP = left_run.start_FP,
 		 right_FP = right_run.start_FP,
-		 last_FP = 0, leftbound_FP = 0;
+		 last_FP, leftbound_FP;
 
 	seekg(left_FP);
 	this->operator>>(last_FP);
 	leftbound_FP = last_FP;
 
 	T ldata, rdata;
+	Run result_run = Run(left_run.size + right_run.size, left_run.start_FP, right_run.end_FP);
+	//std::cout << "LRun: " << left_run.size << ", " << left_run.start_FP << ", " << left_run.end_FP << std::endl;
+	//std::cout << "RRun: " << right_run.size << ", " << right_run.start_FP << ", " << right_run.end_FP << std::endl;
 
-	std::cout << "LRun: " << left_run.size << ", " << left_run.start_FP << ", " << left_run.end_FP << std::endl;
-	std::cout << "RRun: " << right_run.size << ", " << right_run.start_FP << ", " << right_run.end_FP << std::endl;
-
-	int counter = -1, iteration = 1;
+	int counter = -1;
+	//int iteration = 1;
 	while (left_FP != left_run.end_FP && right_FP != right_run.end_FP)
 	{
 		debugFilePrint();
@@ -448,7 +450,7 @@ template <class T> void FileList<T>::runMergeSort(Run& left_run, Run& right_run)
 
 		seekg(right_FP + 2 * FP_OFFSET);
 		this->operator>>(rdata);
-		//
+		/*
 		std::cout << std::endl <<
 			"Ldata: " << ldata <<
 			"\nRdata: " << rdata <<
@@ -457,7 +459,7 @@ template <class T> void FileList<T>::runMergeSort(Run& left_run, Run& right_run)
 			"\nlast_FP: " << last_FP <<
 			"\ncounter: " << counter << 
 			"\niteration: " << iteration++ << std::endl;
-		//
+		*/
 		if (ldata < rdata)
 		{
 			if (counter < 0) { counter--; }
@@ -487,7 +489,7 @@ template <class T> void FileList<T>::runMergeSort(Run& left_run, Run& right_run)
 				this->operator<<(right_FP);
 				if (last_FP == leftbound_FP && right_run.end_FP == left_run.start_FP)
 				{
-					right_run.end_FP = right_FP;
+					right_run.end_FP = result_run.end_FP = result_run.start_FP = FNFP = right_FP;
 				}
 
 				seekg(right_FP);
@@ -554,6 +556,8 @@ template <class T> void FileList<T>::runMergeSort(Run& left_run, Run& right_run)
 		seekg(right_FP);
 		this->operator<<(last_FP);
 	}
+
+	return result_run;
 }
 
 template <class T> void FileList<T>::sort()
