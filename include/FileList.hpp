@@ -38,8 +38,10 @@ public:
 	void replace(const T& data, int offset_index);
 
 	void sort();//TODO sort modes
+
 	void mergeTest(FP_t, FP_t, FP_t);
 	void insertTest(FP_t, FP_t, size_t);
+	bool checkSorted();
 	void debugFilePrint();
 private:
 	template <class D>
@@ -68,6 +70,24 @@ template <class T> FileList<T>::FileList()
 template <class T> FileList<T>::~FileList()
 {
 	//copying from swap to origin
+}
+
+template <class T> bool FileList<T>::checkSorted()
+{
+	if (!FNFP) return true;
+
+	FP_t ptr;
+	seekg(FNFP + FP_OFFSET);
+	T data1, data2;
+	this->operator>>(ptr) >> data1;
+	while(ptr != FNFP)
+	{
+		seekg(ptr + FP_OFFSET);
+		this->operator>>(ptr) >> data2;
+		if (data2 < data1) return false;
+		data1 = data2;
+	}
+	return true;
 }
 
 template <class T> void FileList<T>::save()
@@ -445,7 +465,7 @@ template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left
 	//int iteration = 1;
 	while (left_FP != left_run.end_FP && right_FP != right_run.end_FP)
 	{
-		debugFilePrint();
+		//debugFilePrint();
 		seekg(left_FP + 2 * FP_OFFSET);
 		this->operator>>(ldata);
 
@@ -575,8 +595,11 @@ template <class T> void FileList<T>::sort()
 	{
 		runs.push_back(getRun(iter_FP, minrun));
 		iter_FP = runs.back().end_FP;
-
-		while (runs.size() >= 3)
+		if (runs.size() > 1)
+		{
+			runs[runs.size()-2].end_FP = runs.back().start_FP;
+		}
+		/*while (runs.size() >= 3)
 		{
 			size_t i = runs.size() - 1;
 			Run& X = runs[i-2];
@@ -598,16 +621,22 @@ template <class T> void FileList<T>::sort()
 				runs.pop_back();
 			}
 			else { break; }
-		}
+		}*/
 	} while (iter_FP != FNFP);
 
 
-	if (runs.size() > 1)
+	/*if (runs.size() > 1)
 	{
 		runMergeSort(runs[0], runs[1]);
 		runs.clear();
+	}*/
+	
+	//FNFP = runs[0].start_FP;
+	std::cout << minrun << " " << runs.size() << std::endl;
+	for (Run& i : runs)
+	{
+		std::cout << i.size << " " << i.start_FP << " " << i.end_FP << std::endl;
 	}
-	FNFP = runs[0].start_FP;
 }
 
 template <class T> size_t FileList<T>::getMinrun() const
@@ -623,9 +652,21 @@ template <class T> size_t FileList<T>::getMinrun() const
 
 template <class T> void FileList<T>::insertTest(FP_t start_FP, FP_t end_FP, size_t run_size)
 {
-	runInsertSort(start_FP, end_FP, run_size);
-	std::cout << start_FP << " " << end_FP << " " << run_size << std::endl;
-	debugFilePrint();
+	//runInsertSort(start_FP, end_FP, run_size);
+	//std::cout << start_FP << " " << end_FP << " " << run_size << std::endl;
+	//debugFilePrint();
+	insert(100);
+	FP_t end = 28;
+	for (size_t i = 0; i < 150; i++)
+	{
+		int data = rand()%300;
+		FP_t aga = end;
+		insert(data);
+		runInsertSort(FNFP, aga, i+1);
+		end += 20;
+		show();
+		if (!checkSorted()) throw;
+	}
 }
 
 template <class T> void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
@@ -649,14 +690,14 @@ template <class T> void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
 		seekg(compare_FP + 2 * FP_OFFSET);
 		this->operator>>(comparing_data);
 
-		std::cout << "cmp:" << compare_FP << " data:" << comparing_data << std::endl;
-		if (inserting_data <= comparing_data)
+		//std::cout << "cmp:" << compare_FP << " data:" << comparing_data << std::endl;
+		if (comparing_data <= inserting_data)
 		{
 			run_size -= run_size/2;
+			left_bound_FP = compare_FP;
 		}
 		else
 		{
-			left_bound_FP = compare_FP;
 			run_size /= 2;
 		}
 	}
