@@ -611,36 +611,40 @@ template <class T> void FileList<T>::sort()
 		while (runs.size() >= 3)
 		{
 			size_t i = runs.size() - 1;
-			Run& X = runs[i-2];
-			Run& Y = runs[i-1];
-			Run& Z = runs[i];
+			Run& left = runs[i-2];
+			Run& middle = runs[i-1];
+			Run& right = runs[i];
 
-			if ((X.size <= Y.size + Z.size)
-			|| (Y.size <= Z.size))
+			if ((left.size <= middle.size + right.size)
+			|| (middle.size <= right.size))
 			{
-				if (Z.size < X.size)
+				if (right.size < left.size)
 				{
-					Y = runMergeSort(Y, Z);
+					middle = runMergeSort(middle, right);
+					left.end_FP = middle.start_FP;
 				}
 				else
 				{
-					X = runMergeSort(X, Y);
-					Y = Z;
+					left = runMergeSort(left, middle);
+					middle = right;
+					if (&left != &runs.front()) { runs.front().end_FP = left.start_FP; }
+					else { middle.end_FP = left.start_FP; }
 				}
 				runs.pop_back();
 			}
 			else { break; }
 		}
-		*/
+*/
 	} while (iter_FP != FNFP);
 
 	//show();
 	//debugFilePrint();
 	for (size_t i = 1; i < runs.size(); i++)
 	{
-	//	std::cout << "Merging:"
+		//std::cout << "Merging:"
 		//	<< "\nRun1: size " << runs[i-1].size << " start " << runs[i-1].start_FP << " end " << runs[i-1].end_FP
 		//	<< "\nRun2: size " << runs[i].size << " start " << runs[i].start_FP << " end " << runs[i].end_FP << std::endl;
+
 		runs[i] = runMergeSort(runs[i-1], runs[i]);
 		if (i + 1 < runs.size())
 		{
@@ -799,8 +803,6 @@ template <class T> typename FileList<T>::Run FileList<T>::getRun(FP_t start_FP, 
 
 	if (next_FP == FNFP)
 	{
-		//start_FP = next_FP;
-		//seekg(start_FP);
 		return Run(run_size, start_FP, next_FP);
 	}
 	seekg(next_FP + FP_OFFSET);
