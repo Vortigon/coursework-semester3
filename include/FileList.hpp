@@ -510,9 +510,17 @@ template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left
 
 				seekg(last_FP + FP_OFFSET);
 				this->operator<<(right_FP);
-				if (last_FP == leftbound_FP && right_run.end_FP == left_run.start_FP)
+				if (last_FP == leftbound_FP)
 				{
-					right_run.end_FP = result_run.end_FP = result_run.start_FP = FNFP = right_FP;
+					result_run.start_FP = right_FP;
+					if (right_run.end_FP == left_run.start_FP)
+					{
+						result_run.end_FP = right_run.end_FP = right_FP;
+					}
+					if (left_run.start_FP == FNFP)
+					{
+						FNFP = right_FP;
+					}
 				}
 
 				seekg(right_FP);
@@ -588,7 +596,7 @@ template <class T> void FileList<T>::sort()
 	if (size < 2) { return; }
 
 	size_t minrun = getMinrun();
-	
+	std::cout << "MINRUN " << minrun << std::endl;
 	std::vector<Run> runs;
 	FP_t iter_FP = FNFP;
 	do
@@ -599,7 +607,8 @@ template <class T> void FileList<T>::sort()
 		{
 			runs[runs.size()-2].end_FP = runs.back().start_FP;
 		}
-		/*while (runs.size() >= 3)
+/*
+		while (runs.size() >= 3)
 		{
 			size_t i = runs.size() - 1;
 			Run& X = runs[i-2];
@@ -621,21 +630,24 @@ template <class T> void FileList<T>::sort()
 				runs.pop_back();
 			}
 			else { break; }
-		}*/
+		}
+		*/
 	} while (iter_FP != FNFP);
 
-
-	/*if (runs.size() > 1)
+	//show();
+	//debugFilePrint();
+	for (size_t i = 1; i < runs.size(); i++)
 	{
-		runMergeSort(runs[0], runs[1]);
-		runs.clear();
-	}*/
-	
-	//FNFP = runs[0].start_FP;
-	std::cout << minrun << " " << runs.size() << std::endl;
-	for (Run& i : runs)
-	{
-		std::cout << i.size << " " << i.start_FP << " " << i.end_FP << std::endl;
+	//	std::cout << "Merging:"
+		//	<< "\nRun1: size " << runs[i-1].size << " start " << runs[i-1].start_FP << " end " << runs[i-1].end_FP
+		//	<< "\nRun2: size " << runs[i].size << " start " << runs[i].start_FP << " end " << runs[i].end_FP << std::endl;
+		runs[i] = runMergeSort(runs[i-1], runs[i]);
+		if (i + 1 < runs.size())
+		{
+			runs.back().end_FP = FNFP;
+		}
+		//show();
+		//debugFilePrint();
 	}
 }
 
