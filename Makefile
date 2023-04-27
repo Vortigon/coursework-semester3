@@ -21,31 +21,7 @@ RLS_DIR := release
 RLS_TARGET := $(RLS_DIR)/$(TARGET)
 RLS_OBJS := $(addprefix $(RLS_DIR)/, $(OBJS))
 
-.PHONY: all clean debug release test
-
-testvar:
-	@echo SRCS
-	@echo $(SRCS)
-	@echo OBJS
-	@echo $(OBJS)
-	@echo DEPS
-	@echo $(DEPS)
-	@echo TARGET
-	@echo $(TARGET)
-	@echo hm
-	@echo $(hm)
-	@echo DBG_TARGET
-	@echo $(DBG_TARGET)
-	@echo DBG_OBJS
-	@echo $(DBG_OBJS)
-	@echo RLS_TARGET
-	@echo $(RLS_TARGET)
-	@echo RLS_OBJS
-	@echo $(RLS_OBJS)
-	@echo $(addprefix $(DBG_DIR)/,$(DEPS))
-
-test:
-	@$(foreach obj,$(DBG_OBJS),echo $(obj);)
+.PHONY: all clean debug release
 
 all: debug release
 
