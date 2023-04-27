@@ -51,4 +51,7 @@ $(DBG_DIR)/$(OBJS_DIR) $(DBG_DIR)/$(DEPS_DIR) $(RLS_DIR)/$(OBJS_DIR) $(RLS_DIR)/
 	mkdir -p $@
 
 clean:
-	rm -rf $(DBG_DIR) $(RLS_DIR)
+	rm -f $(addprefix $(DBG_DIR)/, $(OBJS) $(DEPS) $(TARGET))
+	-rmdir $(addprefix $(DBG_DIR)/, $(OBJS_DIR) $(DEPS_DIR)) $(DBG_DIR) --ignore-fail-on-non-empty
+	rm -f $(addprefix $(RLS_DIR)/, $(OBJS) $(DEPS) $(TARGET))
+	-rmdir $(addprefix $(RLS_DIR)/, $(OBJS_DIR) $(DEPS_DIR)) $(RLS_DIR) --ignore-fail-on-non-empty
