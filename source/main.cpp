@@ -6,10 +6,11 @@ int main()
 {
 	FileList<int> fl;
 	fl.open(String("test.bin"));
-	for (size_t i = 0; i < 15000; i++)
+	for (size_t i = 0; i < 15000; ++i)
 	{
 		fl.insert(rand());
 	}
+
 	fl.show();
 
 	clock_t start = clock();

@@ -55,6 +55,8 @@ private:
 	Run getRun(FP_t start_FP, size_t minrun);
 	void runInsertSort(FP_t& start_FP, FP_t& end_FP,
 			size_t run_size);
+
+	FP_t gallopingMode(FP_t last_FP, FP_t galloping_end_FP, const T& compared_data);
 	Run runMergeSort(Run& run1, Run& run2);
 	//-----
 	void copyToSwap(char*& origin_name);
@@ -426,6 +428,43 @@ template <class T> void FileList<T>::mergeTest(FP_t left, FP_t middle, FP_t righ
 	std::cout << result.size << " " << result.start_FP << " " << result.end_FP << std::endl;
 }
 
+template <class T> typename FileList<T>::FP_t FileList<T>::gallopingMode(FP_t last_FP, FP_t galloping_end_FP, const T& compared_data)
+{
+	FP_t galloping_FP = last_FP;
+	uint32_t gallope_counter = 2;
+	bool gallope_end = false;
+	while (!gallope_end)
+	{
+		FP_t next_FP = galloping_FP;
+		for (uint32_t i = 0; i < gallope_counter; ++i)
+		{
+			seekg(next_FP + FP_OFFSET);
+			this->operator>>(next_FP);
+			if (next_FP == galloping_end_FP)
+			{
+				gallope_end = true;
+				break;
+			}
+			galloping_FP = next_FP;
+		}
+
+		if (galloping_FP == last_FP) { break; }
+
+		T data;
+		seekg(galloping_FP + 2*FP_OFFSET);
+		this->operator>>(data);
+		if (compared_data < data) {
+			gallope_end = true;
+		}
+		else
+		{
+			gallope_counter *= 2;
+			last_FP = galloping_FP;
+		}
+	}
+	return last_FP;
+}
+
 template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left_run, Run& right_run)
 {
 	FP_t left_FP = left_run.start_FP,
@@ -440,14 +479,24 @@ template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left
 	Run result_run = Run(left_run.size + right_run.size, left_run.start_FP, right_run.end_FP);
 
 	int counter = -1;
+
+	seekg(right_FP + 2 * FP_OFFSET);
+	this->operator>>(rdata);
+
+	//Соединяем левый и правый run, пока не доходим до конца одного из них
 	while (left_FP != left_run.end_FP && right_FP != right_run.end_FP)
 	{
-		seekg(left_FP + 2 * FP_OFFSET);
-		this->operator>>(ldata);
-
-		seekg(right_FP + 2 * FP_OFFSET);
-		this->operator>>(rdata);
-
+		if (counter < 0)
+		{
+			seekg(left_FP + 2 * FP_OFFSET);
+			this->operator>>(ldata);
+		}
+		else
+		{
+			seekg(right_FP + 2 * FP_OFFSET);
+			this->operator>>(rdata);
+		}
+		//добавление в результирующий run элемента из левого
 		if (ldata < rdata)
 		{
 			if (counter < 0) { counter--; }
@@ -463,7 +512,11 @@ template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left
 			}
 			last_FP = left_FP;
 			
-			seekg(left_FP + FP_OFFSET);
+			if (counter < -7) {
+				last_FP = gallopingMode(last_FP, left_run.end_FP, rdata);
+				counter = -1;
+			}	
+			seekg(last_FP + FP_OFFSET);
 			this->operator>>(left_FP);
 		}
 		else if (rdata < ldata)
@@ -495,9 +548,13 @@ template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left
 			}
 			last_FP = right_FP;
 
+			if (counter > 7) {
+				last_FP = gallopingMode(last_FP, right_run.end_FP, ldata);
+				counter = 1;
+			}	
 			seekg(right_FP + FP_OFFSET);
 			this->operator>>(right_FP);
-		}
+		}//добавление элемента из того же run'a, что и предыдущий элемент (если текущие элементы равны)
 		else
 		{
 			if (counter > 0)
