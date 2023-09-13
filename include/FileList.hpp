@@ -92,8 +92,6 @@ template <class T> bool FileList<T>::checkSorted()
 	return true;
 }
 
-/*
-//TODO check previous linkage
 template <class T> bool FileList<T>::checkPreviousLinkage()
 {
 	if (!FNFP) return true;
@@ -104,11 +102,17 @@ template <class T> bool FileList<T>::checkPreviousLinkage()
 		FP_t next_FP, prev_FP;
 		seekg(check_FP + FP_OFFSET);
 		this->operator>>(next_FP);
-		seekg(temp);
-		if (
-	} while(check_ptr != FNFP);
+		seekg(next_FP);
+		this->operator>>(prev_FP);
+		if (prev_FP != check_FP) {
+			return false;
+		}
+		check_FP = next_FP;
+	} while(check_FP != FNFP);
+
+	return true;
 }
-*/
+
 
 template <class T> void FileList<T>::save()
 {
