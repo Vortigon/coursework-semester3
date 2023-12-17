@@ -11,7 +11,7 @@ OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJS_DIR)/%.o,$(SRCS))
 DEPS := $(patsubst $(OBJS_DIR)/%.o,$(DEPS_DIR)/%.d,$(OBJS))
 TARGET := program
 
-DBG_FLAGS := -g
+DBG_FLAGS := -g -D CW_DBG
 DBG_DIR := debug
 DBG_TARGET := $(DBG_DIR)/$(TARGET)
 DBG_OBJS := $(addprefix $(DBG_DIR)/, $(OBJS))
