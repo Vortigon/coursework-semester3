@@ -44,7 +44,7 @@ template <class T> void FileList<T>::insertTest(bool ascending)
 		runInsertSort(FNFP, end, size-1, ascending);
 		if (!checkSorted()) std::cout << "not sorted" << std::endl;
 		checkPreviousLinkage();
-		
+
 	}
 	show();
 	//debugFilePrint();
@@ -52,7 +52,7 @@ template <class T> void FileList<T>::insertTest(bool ascending)
 
 template <class T> void FileList<T>::mergeTest(FP_t left, FP_t middle, FP_t right)
 {
-	Run run1 = Run(4, left, middle), run2 = Run(4, middle, right); 
+	Run run1 = Run(4, left, middle), run2 = Run(4, middle, right);
 	Run result = runMergeSort(run1, run2);
 	std::cout << result.size << " " << result.start_FP << " " << result.end_FP << std::endl;
 }
@@ -84,7 +84,7 @@ template <class T> void FileList<T>::checkNextLinkage() {
 		for (FP_t& vfp : visited) {
 			if (fp == vfp) {
 				std::cout << "BROKEN NEXT LINKAGE FP: " << fp << std::endl; throw;
-			} 
+			}
 		}
 		visited.push_back(fp);
 		seekg(fp + FP_OFFSET);

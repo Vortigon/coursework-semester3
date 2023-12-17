@@ -43,12 +43,12 @@ public:
 	//------Debug Methods
 	void mergeTest(FP_t, FP_t, FP_t);
 	void insertTest(bool ascending = true);
-	
+
 	bool checkSorted();
-	
+
 	void checkPreviousLinkage();
 	void checkNextLinkage();
-	
+
 	void debugFilePrint();
 	void debugPrintRuns(std::vector<Run>& runs);
 #endif
@@ -58,6 +58,7 @@ private:
 
 	template <class D>
 	file_t& operator<<(const D& data);
+
 	//-----Timsort parts
 	size_t getMinrun() const;
 	Run getRun(FP_t start_FP, size_t minrun, bool ascending);
@@ -65,7 +66,8 @@ private:
 			size_t run_size, bool ascending);
 
 	Run runMergeSort(Run& run1, Run& run2, bool ascending);
-	FP_t gallopingMode(FP_t last_FP, FP_t galloping_end_FP, const T& compared_data, bool ascending);
+	FP_t gallopingMode(FP_t last_FP, FP_t galloping_end_FP,
+		const T& compared_data, bool ascending);
 	void resetDoubleLinkage();
 
 	//-----
@@ -112,7 +114,7 @@ template <class T> void FileList<T>::save()
 		origin << last_FP << origin_FNFP << data;
 		last_FP = end_FP;
 
-		if (current_FP == FNFP) 
+		if (current_FP == FNFP)
 		{
 			current_FP = 0;
 			origin.seekg(FP_OFFSET);
@@ -217,7 +219,8 @@ template <class T> void FileList<T>::show()
 	std::cout << "<-" << std::endl;
 }
 
-template <class T> void FileList<T>::insert(const T& data, int offset_index)
+template <class T>
+void FileList<T>::insert(const T& data, int offset_index)
 {
 	if (!is_open()) { return; }
 
@@ -267,7 +270,7 @@ template <class T> void FileList<T>::insert(const T& data, int offset_index)
 
 	seekg(left_node + FP_OFFSET);
 	this->operator<<(end_FP);
-	
+
 	seekg(right_node);
 	this->operator<<(end_FP);
 
@@ -279,7 +282,8 @@ template <class T> void FileList<T>::insert(const T& data, int offset_index)
 	}
 }
 
-template <class T> void FileList<T>::replace(const T& data, int offset_index)
+template <class T>
+void FileList<T>::replace(const T& data, int offset_index)
 {
 	if (size == 0 || !is_open()) return;
 
@@ -354,7 +358,7 @@ template <class T> void FileList<T>::remove(int offset_index)
 	FP_t left_node, right_node;
 	seekg(FNFP);
 	this->operator>>(left_node) >> right_node;
-	
+
 	if (offset_index >= 0)
 	{
 		for (int i = 0; i != offset_index; i++)
@@ -385,7 +389,9 @@ template <class T> void FileList<T>::remove(int offset_index)
 	size--;
 }
 
-template <class T> typename FileList<T>::FP_t FileList<T>::gallopingMode(FP_t last_FP, FP_t galloping_end_FP, const T& compared_data, bool ascending)
+template <class T>
+typename FileList<T>::FP_t FileList<T>::gallopingMode(FP_t last_FP,
+		FP_t galloping_end_FP, const T& compared_data, bool ascending)
 {
 	FP_t galloping_FP = last_FP;
 	uint32_t gallope_counter = 2;
@@ -422,7 +428,9 @@ template <class T> typename FileList<T>::FP_t FileList<T>::gallopingMode(FP_t la
 	return last_FP;
 }
 
-template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left_run, Run& right_run, bool ascending)
+template <class T>
+typename FileList<T>::Run FileList<T>::runMergeSort(Run& left_run,
+		Run& right_run, bool ascending)
 {
 	FP_t left_FP = left_run.start_FP,
 		 right_FP = right_run.start_FP,
@@ -468,11 +476,11 @@ template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left
 				this->operator<<(last_FP);
 			}
 			last_FP = left_FP;
-			
+
 			if (counter < -7) {
 				last_FP = gallopingMode(last_FP, left_run.end_FP, rdata, ascending);
 				counter = -1;
-			}	
+			}
 			seekg(last_FP + FP_OFFSET);
 			this->operator>>(left_FP);
 		}
@@ -508,7 +516,7 @@ template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left
 			if (counter > 7) {
 				last_FP = gallopingMode(last_FP, right_run.end_FP, ldata, ascending);
 				counter = 1;
-			}	
+			}
 			seekg(right_FP + FP_OFFSET);
 			this->operator>>(right_FP);
 		}//добавление элемента из того же run'a, что и предыдущий элемент (если текущие элементы равны)
@@ -518,7 +526,7 @@ template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left
 			{
 				counter++;
 				last_FP = right_FP;
-				
+
 				seekg(right_FP + FP_OFFSET);
 				this->operator>>(right_FP);
 			}
@@ -543,7 +551,7 @@ template <class T> typename FileList<T>::Run FileList<T>::runMergeSort(Run& left
 
 		FP_t lnext_FP;
 		this->operator>>(lnext_FP);
-		
+
 		while (lnext_FP != left_run.end_FP)
 		{
 			left_FP = lnext_FP;
@@ -639,7 +647,8 @@ template <class T> size_t FileList<T>::getMinrun() const
 	return n+r;
 }
 
-template <class T> void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
+template <class T>
+void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
 		size_t run_size, bool ascending)
 {
 	T inserting_data, comparing_data;
@@ -698,7 +707,7 @@ template <class T> void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
 		  }
 		  return;
 		}
-		
+
 		seekg(in_prev + FP_OFFSET);
 		this->operator<<(in_next);
 		seekg(in_next);
@@ -711,10 +720,10 @@ template <class T> void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
 
 		seekg(end_FP);
 		this->operator<<(compare_FP) << comp_next;
-		
+
 		end_FP = in_next;
 	}
-	else 
+	else
 	{
 		FP_t comp_prev, in_prev, in_next;
 
@@ -760,7 +769,9 @@ template <class T> void FileList<T>::runInsertSort(FP_t& start_FP, FP_t& end_FP,
 	}
 }
 
-template <class T> typename FileList<T>::Run FileList<T>::getRun(FP_t start_FP, size_t minrun, bool ascending)
+template <class T>
+typename FileList<T>::Run FileList<T>::getRun(FP_t start_FP,
+		size_t minrun, bool ascending)
 {
 	T data1, data2;
 	FP_t next_FP, end_FP;
@@ -776,10 +787,10 @@ template <class T> typename FileList<T>::Run FileList<T>::getRun(FP_t start_FP, 
 	}
 	seekg(next_FP + FP_OFFSET);
 	this->operator>>(next_FP) >> data2;
-	
+
 	if (data1 > data2) { descend = true; }
 	else { descend = false; }
-	
+
 	while((data1 > data2 && descend) || (data1 <= data2 && !descend))
 	{
 		end_FP = next_FP;//end points after last element, so we can check if (next_FP == end_FP)
@@ -863,12 +874,12 @@ template <class T> typename FileList<T>::Run FileList<T>::getRun(FP_t start_FP, 
 			iter_FP1 = next1;
 			iter_FP2 = prev2;
 		}
-	}	
+	}
 
 	while (run_size < minrun)
 	{
 		if (end_FP == FNFP) { break; }
-	
+
 		runInsertSort(start_FP, end_FP, run_size, ascending);
 		++run_size;
 	}
