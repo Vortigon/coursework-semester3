@@ -6,7 +6,7 @@ INC_DIR := include
 DEPS_DIR := deps
 OBJS_DIR := objs
 
-SRCS := $(addprefix $(SRC_DIR)/,main.cpp String.cpp)
+SRCS := $(addprefix $(SRC_DIR)/,main.cpp String.cpp Menu.cpp)
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJS_DIR)/%.o,$(SRCS))
 DEPS := $(patsubst $(OBJS_DIR)/%.o,$(DEPS_DIR)/%.d,$(OBJS))
 TARGET := program

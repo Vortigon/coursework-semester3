@@ -5,6 +5,8 @@
 #include "IO_operators.hpp"
 #include "serializedSize.hpp"
 
+using namespace flbinio;
+
 template <class T>
 class FileList : protected std::fstream
 {
@@ -29,16 +31,18 @@ public:
 	FileList();
 	~FileList();
 
+	static bool checkFileExistence(const String& _filename);
 	void open(const String& _filename);
+	void close();
 	using file_t::is_open;
-	void show();//TODO where to show
+	void show();
 	void insert(const T& data, int offset_index = -1);
 	void save();
 	void remove(int offset_index = -1);
 	void replace(const T& data, int offset_index);
 
 	void sort(bool ascending = true);
-
+	size_t getSize();
 #ifdef CW_DBG
 	//------Debug Methods
 	void mergeTest(FP_t, FP_t, FP_t);
@@ -48,6 +52,7 @@ public:
 
 	void checkPreviousLinkage();
 	void checkNextLinkage();
+	void resetDoubleLinkage();
 
 	void debugFilePrint();
 	void debugPrintRuns(std::vector<Run>& runs);
@@ -68,9 +73,8 @@ private:
 	Run runMergeSort(Run& run1, Run& run2, bool ascending);
 	FP_t gallopingMode(FP_t last_FP, FP_t galloping_end_FP,
 		const T& compared_data, bool ascending);
-	void resetDoubleLinkage();
-
 	//-----
+
 	void copyToSwap(char*& origin_name);
 private:
 	String filename;
@@ -83,7 +87,22 @@ template <class T> FileList<T>::FileList()
 
 template <class T> FileList<T>::~FileList()
 {
-	//copying from swap to origin
+	close();
+}
+
+template <class T> size_t FileList<T>::getSize() { return size; }
+
+template <class T> bool FileList<T>::checkFileExistence(const String& _filename)
+{
+	char* filename_c_str;
+	_filename.c_str(filename_c_str);
+	file_t checkfile(filename_c_str, COPY_MODE);
+	if (checkfile.is_open())
+	{
+		checkfile.close();
+		return true;
+	}
+	else { return false; }
 }
 
 template <class T> void FileList<T>::save()
@@ -98,7 +117,7 @@ template <class T> void FileList<T>::save()
 	T data;
 	FP_t last_FP = FP_OFFSET, current_FP = FNFP, origin_FNFP = FP_OFFSET;
 	origin.seekg(0);
-	origin << origin_FNFP;
+	flbinio::operator<<(origin, origin_FNFP);
 	seekg(FNFP);
 
 	while (current_FP)
@@ -108,17 +127,19 @@ template <class T> void FileList<T>::save()
 
 		FP_t end_FP = origin.tellg();
 		origin.seekg(last_FP + FP_OFFSET);
-		origin << end_FP;
+		flbinio::operator<<(origin, end_FP);
 
 		origin.seekg(end_FP);
-		origin << last_FP << origin_FNFP << data;
+		flbinio::operator<<(origin, last_FP);
+		flbinio::operator<<(origin, origin_FNFP);
+		flbinio::operator<<(origin, data);
 		last_FP = end_FP;
 
 		if (current_FP == FNFP)
 		{
 			current_FP = 0;
 			origin.seekg(FP_OFFSET);
-			origin << last_FP;
+			flbinio::operator<<(origin, last_FP);
 		}
 	}
 
@@ -130,7 +151,7 @@ template <class T> void FileList<T>::open(const String& _filename)
 {
 	if (is_open())
 	{
-		close();//copying old file from swap to origin (made in save)
+		close();
 	}
 
 	char* c_str_origin, *c_str_swap;
@@ -151,6 +172,16 @@ template <class T> void FileList<T>::open(const String& _filename)
 	delete[] c_str_swap;
 }
 
+template <class T> void FileList<T>::close()
+{
+	if (!is_open()) { return; }
+	char* swap_name;
+	file_t::close();
+	(filename + String(".swp")).c_str(swap_name);
+	::remove(swap_name);
+	delete swap_name;
+}
+
 template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 {
 	FNFP = 0;
@@ -166,7 +197,7 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 		return;
 	}
 
-	origin >> FNFP;
+	flbinio::operator>>(origin, FNFP);
 	this->operator<<(FNFP);
 
 	if (FNFP > 0)
@@ -176,19 +207,18 @@ template <class T> void FileList<T>::copyToSwap(char*& origin_name)
 
 		while(origin.peek() != EOF)
 		{
-			origin >> read_FP;
+			flbinio::operator>>(origin, read_FP);
 			this->operator<<(read_FP);
 
-			origin >> read_FP;
+			flbinio::operator>>(origin, read_FP);
 			this->operator<<(read_FP);
 
-			origin >> data;
+			flbinio::operator>>(origin, data);
 			this->operator<<(data);
 
 			size++;
 		}
 		seekg(FNFP);
-		//TODO checking list maybe(if all bytes are useful)
 	}
 	origin.close();
 }
@@ -205,7 +235,7 @@ template <class T> void FileList<T>::show()
 	FP_t iter_FP;
 	T read_data;
 
-	size_t index = 1;
+	size_t index = 0;
 	std::cout << "->" << std::endl;
 	do
 	{
@@ -213,7 +243,6 @@ template <class T> void FileList<T>::show()
 		seekg(iter_FP + FP_OFFSET);
 		this->operator>>(next_FP) >> read_data;
 
-		//there's need of some kind of buffer, that gets data
 		std::cout << '[' << index++ << "]: " << read_data << std::endl;
 	} while (next_FP != FNFP);
 	std::cout << "<-" << std::endl;
@@ -484,7 +513,7 @@ typename FileList<T>::Run FileList<T>::runMergeSort(Run& left_run,
 			seekg(last_FP + FP_OFFSET);
 			this->operator>>(left_FP);
 		}
-		else if (ascending ? (rdata < ldata) : (ldata < rdata))
+		else if (ascending ? (rdata < ldata) : (ldata < rdata)) //добавление в результирующий run элемента из правого
 		{
 			if (counter > 0) { counter++; }
 			else
@@ -582,7 +611,6 @@ template <class T> void FileList<T>::sort(bool ascending)
 	if (size < 2) { return; }
 
 	size_t minrun = getMinrun();
-	std::cout << "MINRUN " << minrun << std::endl;
 	std::vector<Run> runs;
 	FP_t iter_FP = FNFP;
 	do
@@ -627,14 +655,12 @@ template <class T> void FileList<T>::sort(bool ascending)
 
 	} while (iter_FP != FNFP);
 
-	std::cout << "runs size " << runs.size() << std::endl;
 	for (size_t i = runs.size() - 1; i > 0; --i)
 	{
 		runs[i-1] = runMergeSort(runs[i-1], runs[i], ascending);
 		if (i > 1) { runs[i-2].end_FP = runs[i-1].start_FP;}
 	}
 }
-
 
 template <class T> size_t FileList<T>::getMinrun() const
 {
@@ -891,14 +917,14 @@ template <class T>
 template <class D>
 std::fstream& FileList<T>::operator>>(D& data)
 {
-	return ::operator>>(reinterpret_cast<file_t&>(*this), data);
+	return flbinio::operator>>(reinterpret_cast<file_t&>(*this), data);
 }
 
 template <class T>
 template <class D>
 std::fstream& FileList<T>::operator<<(const D& data)
 {
-	return ::operator<<(reinterpret_cast<file_t&>(*this), data);
+	return flbinio::operator<<(reinterpret_cast<file_t&>(*this), data);
 }
 
 #include "FileList_DBG.hpp"

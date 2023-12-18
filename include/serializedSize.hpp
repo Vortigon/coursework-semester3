@@ -1,3 +1,4 @@
+#pragma once
 #include "String.h"
 
 template <class S>
@@ -7,7 +8,7 @@ size_t serializedSize(const S& serialized)
 }
 
 template <>
-size_t serializedSize<String>(const String& serialized)
+inline size_t serializedSize<String>(const String& serialized)
 {
 	return serialized.getLength() + sizeof(size_t);
 }

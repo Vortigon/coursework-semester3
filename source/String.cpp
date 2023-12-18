@@ -1,4 +1,4 @@
-#include "../include/String.h"
+#include "String.h"
 
 String::String()
 	: string(nullptr), size(0) {}
@@ -164,6 +164,14 @@ std::ostream& operator<<(std::ostream& out, const String& str)
 {
 	for (size_t i = 0; i < str.size; i++) { out << str[i]; }
 	return out;
+}
+
+std::istream& operator>>(std::istream& in, String& str)
+{
+	static char buffer[8192];
+	in.getline(buffer, 8191);
+	str = String(buffer);
+	return in;
 }
 
 bool String::isEmpty() const

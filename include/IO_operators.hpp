@@ -1,5 +1,8 @@
 #pragma once
 #include "pch.h"
+#include "String.h"
+
+namespace flbinio {
 
 template <class D>
 std::fstream& operator<<(std::fstream& fs, const D& data)
@@ -9,7 +12,7 @@ std::fstream& operator<<(std::fstream& fs, const D& data)
 }
 
 template <>
-std::fstream& operator<<(std::fstream& fs, const String& data)
+inline std::fstream& operator<<(std::fstream& fs, const String& data)
 {
 	fs << data.getLength();
 	char* string;
@@ -27,7 +30,7 @@ std::fstream& operator>>(std::fstream& fs, D& data)
 }
 
 template <>
-std::fstream& operator>>(std::fstream& fs, String& data)
+inline std::fstream& operator>>(std::fstream& fs, String& data)
 {
 	size_t size;
 	fs >> size;
@@ -45,4 +48,5 @@ std::fstream& operator>>(std::fstream& fs, String& data)
 	}
 
 	return fs;
+}
 }

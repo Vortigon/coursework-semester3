@@ -1,9 +1,12 @@
-#include "FileList.hpp"
-#include "String.h"
+//#include "String.h"
+//#include "FileList.hpp"
 #include <ctime>
+#include "Menu.h"
 
 int main()
 {
+	Menu::getInstance().start();
+	/*
 	FileList<int> fl;
 	fl.open(String("test.bin"));
 	
@@ -24,4 +27,5 @@ int main()
 	
 	fl.save();
 	return 0;
+	*/
 }

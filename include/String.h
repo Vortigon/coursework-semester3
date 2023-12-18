@@ -1,7 +1,7 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include "pch.h"
+#include <iostream>
 
 class String
 {
@@ -40,4 +40,5 @@ private:
 	size_t size;
 };
 
+std::istream& operator>>(std::istream& in, String& str);
 #endif /* STRING_H */
